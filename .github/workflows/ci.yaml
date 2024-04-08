@@ -38,7 +38,7 @@ jobs:
           
           new_tags = list(set(docker_tags) - set(docker_with_sshfs_tags))
           
-          print(json.dumps({"includes": [{"tag": tag} for tag in new_tags]}))
+          print(json.dumps({"include": [{"tag": tag} for tag in new_tags]}))
           
           EOF
           
