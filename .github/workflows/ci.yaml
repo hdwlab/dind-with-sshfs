@@ -45,8 +45,8 @@ jobs:
           cat new-tags.json
           
           # Create a matrix of new tags
-          echo "matrix=$(cat new-tags.json)"
-          echo "matrix=$(cat new-tags.json)" >> $GITHUB_OUTPUT
+          echo "matrix=$(cat new-tags.json | jq -rc)"
+          echo "matrix=$(cat new-tags.json | jq -rc)" >> $GITHUB_OUTPUT
 
   build-images:
     needs: get-new-tags
