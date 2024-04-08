@@ -38,14 +38,13 @@ jobs:
           
           new_tags = list(set(docker_tags) - set(docker_with_sshfs_tags))
           
-          print(json.dumps({"includes": new_tags}))
+          print(json.dumps({"includes": [{"tag": tag} for tag in new_tags]}))
           
           EOF
           
           cat new-tags.json
           
           # Create a matrix of new tags
-          echo "matrix=$(cat new-tags.json)"
           echo "matrix=$(cat new-tags.json)" >> $GITHUB_OUTPUT
 
   build-images:
@@ -54,4 +53,4 @@ jobs:
     strategy:
       matrix: ${{fromJson(needs.get-new-tags.outputs.matrix)}}
     steps:
-      - run: echo "Processing ${{ matrix }}"
+      - run: echo "Processing ${{ matrix.tag }}"
