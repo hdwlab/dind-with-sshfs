@@ -20,17 +20,30 @@ jobs:
         run:  |
           # Get image tags of docker from Docker Hub
           curl "https://hub.docker.com/v2/namespaces/library/repositories/docker/tags?name=dind&page_size=3" \
-          | jq -r '.results[] | .name' > docker-tags.txt
+          | jq -r '[.results[] | .name]' > docker-tags.json
           
           # Get image tags of hdwlab/docker-with-sshfs from Docker Hub
           curl "https://hub.docker.com/v2/namespaces/hdwlab/repositories/docker-with-sshfs/tags?page_size=3" \
-          | jq -r '.results[] | .name' > docker-with-sshfs-tags.txt
+          | jq -r '[.results[] | .name]' > docker-with-sshfs-tags.json
           
           # Get tags that are in docker-tags.txt but not in docker-with-sshfs-tags.txt
-          comm -13 docker-tags.txt docker-with-sshfs-tags.txt > new-tags.txt
+          python3 <<EOF > new-tags.json
+          import json
+          
+          with open('docker-tags.json') as f:
+              docker_tags = json.load(f)
+          
+          with open('docker-with-sshfs-tags.json') as f:
+              docker_with_sshfs_tags = json.load(f)
+          
+          new_tags = list(set(docker_tags) - set(docker_with_sshfs_tags))
+          
+          print(json.dumps(new_tags))
+          
+          EOF
           
           # Create a matrix of new tags
-          echo "::set-output name=matrix::$(cat new-tags.txt | jq -nRc '[inputs | select(length>0)]')"
+          echo "::set-output name=matrix::$(cat new-tags.json)"
 
   build-images:
     needs: get-new-tags
