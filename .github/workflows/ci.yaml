@@ -33,7 +33,7 @@ jobs:
           echo "::set-output name=matrix::$(cat new-tags.txt | jq -nRc '[inputs | select(length>0)]')"
 
   build-images:
-    needs: prepare
+    needs: get-new-tags
     runs-on: ubuntu-22.04
     strategy:
       matrix: ${{fromJson(needs.get-new-tags.outputs.matrix)}}
