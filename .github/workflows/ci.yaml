@@ -38,15 +38,15 @@ jobs:
           
           new_tags = list(set(docker_tags) - set(docker_with_sshfs_tags))
           
-          print(json.dumps(new_tags))
+          print(json.dumps({"includes": new_tags}))
           
           EOF
           
           cat new-tags.json
           
           # Create a matrix of new tags
-          echo "matrix=$(cat new-tags.json | jq -rc)"
-          echo "matrix=$(cat new-tags.json | jq -rc)" >> $GITHUB_OUTPUT
+          echo "matrix=$(cat new-tags.json)"
+          echo "matrix=$(cat new-tags.json)" >> $GITHUB_OUTPUT
 
   build-images:
     needs: get-new-tags
