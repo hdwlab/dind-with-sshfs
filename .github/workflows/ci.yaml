@@ -2,11 +2,8 @@ name: CI
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
-#  schedule:
-#    - cron: 0 0 * * 1
+  schedule:
+    - cron: 0 0 * * 1  # Run every Monday at 00:00
 
 jobs:
   get-new-tags:
@@ -19,11 +16,11 @@ jobs:
         shell: bash
         run:  |
           # Get image tags of docker from Docker Hub
-          curl -s "https://hub.docker.com/v2/namespaces/library/repositories/docker/tags?name=dind&page_size=3" \
+          curl -s "https://hub.docker.com/v2/namespaces/library/repositories/docker/tags?name=dind&page_size=10" \
           | jq -r '[.results[] | .name]' > docker-tags.json
           
           # Get image tags of hdwlab/docker-with-sshfs from Docker Hub
-          curl -s "https://hub.docker.com/v2/namespaces/hdwlab/repositories/docker-with-sshfs/tags?page_size=3" \
+          curl -s "https://hub.docker.com/v2/namespaces/hdwlab/repositories/docker-with-sshfs/tags?page_size=10" \
           | jq -r '[.results[] | .name]' > docker-with-sshfs-tags.json
           
           # Get tags that are in docker-tags.txt but not in docker-with-sshfs-tags.txt
