@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  workflow_dispatch:
+#  schedule:
+#    - cron: 0 0 * * 1
+
+jobs:
+  get-new-tags:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Get new tags
+        id: get_new_tags
+        shell: bash
+        run:  |
+          # Get image tags of dind from Docker Hub
+          curl "https://hub.docker.com/v2/namespaces/library/repositories/docker/tags?name=dind&page_size=3" | jq -r '.results[] | .name' > dind-tags.txt
+          
+          cat dind-tags.txt
+          
+          # Get image tags of hdwlab/docker-with-sshfs from Docker Hub
+          curl "https://hub.docker.com/v2/namespaces/hdwlab/repositories/docker-with-sshfs/tags?page_size=3" | jq -r '.results[] | .name' > docker-with-sshfs-tags.txt
+          
+          cat docker-with-sshfs-tags.txt
