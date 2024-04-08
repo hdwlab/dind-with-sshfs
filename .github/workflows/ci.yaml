@@ -2,23 +2,69 @@ name: CI
 
 on:
   workflow_dispatch:
-#  schedule:
-#    - cron: 0 0 * * 1
+  schedule:
+    - cron: 0 0 * * 1  # Run every Monday at 00:00
 
 jobs:
   get-new-tags:
     runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.get-new-tags.outputs.matrix }}
     steps:
       - name: Get new tags
-        id: get_new_tags
+        id: get-new-tags
         shell: bash
         run:  |
-          # Get image tags of dind from Docker Hub
-          curl "https://hub.docker.com/v2/namespaces/library/repositories/docker/tags?name=dind&page_size=3" | jq -r '.results[] | .name' > dind-tags.txt
-          
-          cat dind-tags.txt
+          # Get image tags of docker from Docker Hub
+          curl -s "https://hub.docker.com/v2/namespaces/library/repositories/docker/tags?name=dind&page_size=10" \
+          | jq -r '[.results[] | .name]' > docker-tags.json
           
           # Get image tags of hdwlab/docker-with-sshfs from Docker Hub
-          curl "https://hub.docker.com/v2/namespaces/hdwlab/repositories/docker-with-sshfs/tags?page_size=3" | jq -r '.results[] | .name' > docker-with-sshfs-tags.txt
+          curl -s "https://hub.docker.com/v2/namespaces/hdwlab/repositories/docker-with-sshfs/tags?page_size=10" \
+          | jq -r '[.results[] | .name]' > docker-with-sshfs-tags.json
           
-          cat docker-with-sshfs-tags.txt
+          # Get tags that are in docker-tags.txt but not in docker-with-sshfs-tags.txt
+          python3 <<EOF > new-tags.json
+          import json
+          
+          with open('docker-tags.json') as f:
+              docker_tags = json.load(f)
+          
+          with open('docker-with-sshfs-tags.json') as f:
+              docker_with_sshfs_tags = json.load(f)
+          
+          new_tags = list(set(docker_tags) - set(docker_with_sshfs_tags))
+          
+          print(json.dumps({"include": [{"tag": tag} for tag in new_tags]}))
+          
+          EOF
+          
+          cat new-tags.json
+          
+          # Create a matrix of new tags
+          echo "matrix=$(cat new-tags.json)" >> $GITHUB_OUTPUT
+
+  build-images:
+    needs: get-new-tags
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix: ${{fromJson(needs.get-new-tags.outputs.matrix)}}
+    steps:
+      - run: echo "Building ${{ matrix.tag }}"
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - shell: bash
+        run: |
+          docker buildx build \
+          --push \
+          --platform linux/amd64,linux/arm64 \
+          --build-arg BASE_IMAGE=docker:${{ matrix.tag }} \
+          -t hdwlab/docker-with-sshfs:${{ matrix.tag }} \
+          .
