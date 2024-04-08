@@ -19,11 +19,11 @@ jobs:
         shell: bash
         run:  |
           # Get image tags of docker from Docker Hub
-          curl "https://hub.docker.com/v2/namespaces/library/repositories/docker/tags?name=dind&page_size=3" \
+          curl -s "https://hub.docker.com/v2/namespaces/library/repositories/docker/tags?name=dind&page_size=3" \
           | jq -r '[.results[] | .name]' > docker-tags.json
           
           # Get image tags of hdwlab/docker-with-sshfs from Docker Hub
-          curl "https://hub.docker.com/v2/namespaces/hdwlab/repositories/docker-with-sshfs/tags?page_size=3" \
+          curl -s "https://hub.docker.com/v2/namespaces/hdwlab/repositories/docker-with-sshfs/tags?page_size=3" \
           | jq -r '[.results[] | .name]' > docker-with-sshfs-tags.json
           
           # Get tags that are in docker-tags.txt but not in docker-with-sshfs-tags.txt
@@ -45,6 +45,7 @@ jobs:
           cat new-tags.json
           
           # Create a matrix of new tags
+          echo "matrix=$(cat new-tags.json)"
           echo "matrix=$(cat new-tags.json)" >> $GITHUB_OUTPUT
 
   build-images:
@@ -53,4 +54,4 @@ jobs:
     strategy:
       matrix: ${{fromJson(needs.get-new-tags.outputs.matrix)}}
     steps:
-      - run: echo "Processing ${{ matrix.element }}"
+      - run: echo "Processing ${{ matrix }}"
